@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://judgingapp-97rm.onrender.com/api';
 
 function checkAuth() {
   const token = localStorage.getItem('token');
