@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Judge: View Events</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background: linear-gradient(to right, #667eea, #764ba2);
+      font-family: 'Segoe UI', sans-serif;
+      padding: 100px 20px 40px;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .header__logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .header__nav a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 30px;
+      border-radius: 12px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .event-item {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .event-item h3 {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header__logo">The Adjudicators</div>
+    <nav class="header__nav">
+      <a href="judge-dashboard.html">Dashboard</a>
+      <a href="login.html" onclick="localStorage.clear()">Logout</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <h2>All Judging Events</h2>
+    <div id="eventsList"></div>
+  </div>
+
+  <script>
+    // Optional: fallback user object for demo/testing
+    const judge = JSON.parse(localStorage.getItem("user")) || { id: "guest" };
+
+    async function fetchAllEvents() {
+      try {
+        const res = await fetch("http://localhost:3000/api/events");
+        const events = await res.json();
+        const container = document.getElementById("eventsList");
+
+        if (!Array.isArray(events) || events.length === 0) {
+          container.innerHTML = "<p>No events have been posted yet.</p>";
+          return;
+        }
+
+        events.forEach(event => {
+          const div = document.createElement("div");
+          div.className = "event-item";
+          div.innerHTML = `
+            <h3>${event.name}</h3>
+            <p><strong>Date:</strong> ${event.date?.split('T')[0] || "TBA"}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById("eventsList").innerHTML = "<p style='color: red;'>Failed to load events.</p>";
+      }
+    }
+
+    fetchAllEvents();
+  </script>
+</body>
+</html>

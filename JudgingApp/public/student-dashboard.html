@@ -2,130 +2,215 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Student Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
+      font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to right, #43cea2, #185a9d);
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 100px;
       min-height: 100vh;
-      font-family: Arial, sans-serif;
+      color: white;
     }
 
-    .header {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      padding: 15px 30px;
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
+    .sidebar {
+      width: 240px;
+      background: #12243f;
+      padding: 30px 15px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
+      flex-direction: column;
+      gap: 25px;
     }
 
-    .header__logo {
-      font-size: 24px;
-      font-weight: bold;
+    .sidebar h2 {
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 30px;
     }
 
-    .header__nav a {
-      color: #fff;
+    .sidebar a {
+      color: white;
       text-decoration: none;
-      margin-left: 20px;
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 6px;
+      transition: background 0.3s;
     }
 
-    .dashboard {
-      width: 90%;
-      max-width: 800px;
-      background: rgba(255, 255, 255, 0.15);
+    .sidebar a:hover {
+      background-color: #ffd700;
+      color: #12243f;
+    }
+
+    .main {
+      flex: 1;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .main h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 200px;
+      background: rgba(255, 255, 255, 0.1);
       padding: 20px;
       border-radius: 10px;
-      color: #fff;
+      text-align: center;
     }
 
-    .project-card {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 15px;
-      margin-bottom: 15px;
+    .stat-card h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .stat-card p {
+      font-size: 18px;
+    }
+
+    .project-list {
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 10px;
+      padding: 20px;
     }
 
-    .feedback {
-      background: rgba(0, 0, 0, 0.2);
-      padding: 10px;
-      margin-top: 10px;
+    .project {
+      background: rgba(255, 255, 255, 0.15);
+      margin-bottom: 15px;
+      padding: 15px;
       border-radius: 8px;
     }
 
-    .feedback p {
-      margin: 0.5rem 0;
+    .project a {
+      color: gold;
+      text-decoration: underline;
+    }
+
+    .buttons {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    .buttons a {
+      display: inline-block;
+      margin: 0 10px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      background-color: #ffd700;
+      color: #000;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .buttons a:hover {
+      background-color: #f4c400;
     }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="header__logo">The Adjudicators</div>
-    <nav class="header__nav">
-      <a href="index.html">Home</a>
-      <a href="login.html" onclick="localStorage.clear()">Logout</a>
-    </nav>
-  </header>
 
-  <div class="dashboard">
-    <h2>Your Submitted Projects</h2>
-    <div id="projectContainer"></div>
-  </div>
+  <aside class="sidebar">
+    <h2>Student Menu</h2>
+    <a href="student-dashboard.html">🏠 Dashboard</a>
+    <a href="projects.html">📁 My Projects</a>
+    <a href="Leaderboard.html">🏆 Leaderboard</a>
+    <a href="profile.html">⚙️ Profile</a>
+    <a href="login.html">🚪 Logout</a>
+  </aside>
+
+  <main class="main">
+    <h1>Welcome back, <span id="studentName">Student</span>!</h1>
+
+    <div class="stats">
+      <div class="stat-card">
+        <h2 id="totalProjects">0</h2>
+        <p>Projects Submitted</p>
+      </div>
+      <div class="stat-card">
+        <h2 id="avgScore">0</h2>
+        <p>Average Score</p>
+      </div>
+      <div class="stat-card">
+        <h2 id="reviewsCount">0</h2>
+        <p>Total Reviews</p>
+      </div>
+    </div>
+
+    <div class="project-list">
+      <h2>Your Projects</h2>
+      <div id="projectContainer"></div>
+    </div>
+
+    <div class="buttons">
+      <a href="projects.html">📤 Submit New Project</a>
+      <a href="Leaderboard.html">🏆 View Leaderboard</a>
+    </div>
+  </main>
 
   <script>
-    const student = JSON.parse(localStorage.getItem("user"));
-    if (!student || !student.id) {
-      alert("You must be logged in as a student.");
-      window.location.href = "student.html";
-    }
+    const user = JSON.parse(localStorage.getItem("user")) || { id: 0, name: "Student" };
+    document.getElementById("studentName").textContent = user.name || "Student";
 
-    async function fetchStudentProjects() {
-      const res = await fetch(`http://localhost:3000/api/projects/student/${student.id}`);
-      const data = await res.json();
-      const container = document.getElementById("projectContainer");
+    async function loadStudentData() {
+      try {
+        const res = await fetch(`http://localhost:3000/api/projects/student/${user.id}`);
+        const data = await res.json();
 
-      if (data.length === 0) {
-        container.innerHTML = "<p>You haven't submitted any projects yet.</p>";
-        return;
-      }
+        const container = document.getElementById("projectContainer");
+        document.getElementById("totalProjects").textContent = data.length;
 
-      data.forEach(project => {
-        const card = document.createElement("div");
-        card.className = "project-card";
-
-        let feedbackHtml = "";
-        if (project.reviews && project.reviews.length > 0) {
-          feedbackHtml = project.reviews.map(r => `
-            <div class="feedback">
-              <p><strong>Judge:</strong> ${r.judge_id}</p>
-              <p><strong>Score:</strong> ${r.score}</p>
-              <p><strong>Feedback:</strong> ${r.feedback}</p>
-            </div>
-          `).join("");
-        } else {
-          feedbackHtml = "<p>No feedback yet.</p>";
+        if (!data.length) {
+          container.innerHTML = "<p>No projects submitted yet.</p>";
+          return;
         }
 
-        card.innerHTML = `
-          <h3>${project.title}</h3>
-          <p><strong>Description:</strong> ${project.description}</p>
-          <div>${feedbackHtml}</div>
-        `;
-        container.appendChild(card);
-      });
+        let totalScore = 0;
+        let reviewCount = 0;
+
+        data.forEach(project => {
+          const scoreSum = project.reviews.reduce((acc, r) => acc + r.score, 0);
+          const scoreAvg = project.reviews.length ? (scoreSum / project.reviews.length).toFixed(1) : "N/A";
+          if (project.reviews.length) {
+            totalScore += Number(scoreAvg);
+            reviewCount += 1;
+          }
+
+          const div = document.createElement("div");
+          div.className = "project";
+          div.innerHTML = `
+            <h3>${project.title}</h3>
+            <p>${project.description}</p>
+            <p><strong>Avg Score:</strong> ${scoreAvg}</p>
+            <a href="project.html?id=${project.id}">🔍 View Details</a>
+          `;
+          container.appendChild(div);
+        });
+
+        document.getElementById("avgScore").textContent = reviewCount ? (totalScore / reviewCount).toFixed(1) : "0";
+        document.getElementById("reviewsCount").textContent = reviewCount;
+      } catch (err) {
+        console.error("Error loading student data:", err);
+        document.getElementById("projectContainer").innerHTML = "<p>Error loading projects.</p>";
+      }
     }
 
-    fetchStudentProjects();
+    loadStudentData();
   </script>
 </body>
 </html>

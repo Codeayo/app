@@ -3,79 +3,237 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Profile</title>
-  <link rel="stylesheet" href="styles.css"/>
+  <title>User Profile</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #f7971e, #ffd200);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: white;
       height: 100vh;
+      display: flex;
     }
-    .profile-box {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      width: 100%;
-      max-width: 400px;
+
+    .sidebar {
+      background-color: #1b1e3c;
+      width: 250px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .profile-img {
+      width: 120px;
+      height: 120px;
+      background: lightgray;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      cursor: pointer;
+      border: 4px solid white;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-weight: bold;
+      font-size: 20px;
+      margin-bottom: 30px;
       text-align: center;
     }
-    input {
+
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      margin: 12px 0;
+      font-size: 18px;
+      display: block;
+      transition: 0.2s;
+      text-align: center;
+    }
+
+    .sidebar a:hover {
+      color: #ffd700;
+    }
+
+    .container {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .section h2 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .section table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .section td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .section td:first-child {
+      font-weight: bold;
+      width: 30%;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
       width: 100%;
       padding: 10px;
-      margin-top: 10px;
       border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 20px;
-      padding: 12px;
-      width: 100%;
-      background-color: #f7971e;
+      border: none;
+      background: rgba(255, 255, 255, 0.15);
       color: white;
+      font-size: 16px;
+    }
+
+    input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn {
+      margin-top: 20px;
+      padding: 12px 20px;
+      background-color: #ffd700;
+      color: #333;
       font-weight: bold;
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      transition: background 0.3s;
     }
-    .note {
-      margin-top: 15px;
-      font-size: 14px;
-      color: gray;
+
+    .btn:hover {
+      background-color: #e6c200;
+    }
+
+    #saveMsg {
+      margin-top: 10px;
+      color: #ffd700;
     }
   </style>
 </head>
 <body>
-  <div class="profile-box">
-    <h2>Your Profile</h2>
-    <input type="text" id="name" placeholder="Full Name"/>
-    <input type="password" id="password" placeholder="New Password"/>
-    <button onclick="updateProfile()">Update</button>
-    <p id="msg" class="note"></p>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <label for="upload" title="Change Profile Picture">
+    <img src="https://via.placeholder.com/120" id="profilePic" class="profile-img" alt="Profile Picture" />
+  </label>
+  <input type="file" id="upload" style="display: none" accept="image/*" onchange="changeProfilePic(event)" />
+  
+  <div class="user-name" id="sidebarName">User Name</div>
+  
+  <a href="student-dashboard.html">Home</a>
+  <a href="projects.html">Projects</a>
+  <a href="support.html">Support</a>
+  <a href="profile.html">Settings</a>
+  <a href="login.html">Signout</a>
+</div>
+
+<!-- Main Content -->
+<div class="container">
+  <!-- About Section -->
+  <div class="section">
+    <h2>About</h2>
+    <table>
+      <tr>
+        <td>Full Name</td>
+        <td><input type="text" id="name" /></td>
+      </tr>
+      <tr>
+        <td>Email</td>
+        <td><input type="email" id="email" /></td>
+      </tr>
+      <tr>
+        <td>Phone</td>
+        <td><input type="tel" id="phone" /></td>
+      </tr>
+      <tr>
+        <td>Address</td>
+        <td><input type="text" id="address" /></td>
+      </tr>
+    </table>
+    <button class="btn" onclick="saveProfile()">Save Changes</button>
+    <p id="saveMsg"></p>
   </div>
 
-  <script>
-    // Simulated user session (replace with actual login storage)
-    const user = JSON.parse(localStorage.getItem("user")) || null;
-    const isStudent = user && user.email;
-    const endpoint = isStudent ? "student" : "judge";
+  <!-- Recent Projects Section -->
+  <div class="section">
+    <h2>Recent Projects</h2>
+    <table>
+      <tr>
+        <td><strong>Project Name</strong></td>
+        <td><strong>Project Description</strong></td>
+      </tr>
+      <tr>
+        <td>Judging App</td>
+        <td>Allows judges to score student projects easily</td>
+      </tr>
+    </table>
+  </div>
+</div>
 
-    async function updateProfile() {
-      const name = document.getElementById("name").value;
-      const password = document.getElementById("password").value;
+<script>
+  function saveProfile() {
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("phone").value;
+    const address = document.getElementById("address").value;
 
-      const res = await fetch(`http://localhost:3000/api/${endpoint}/update`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: user.id || user.userId, name, password })
-      });
+    localStorage.setItem("userProfile", JSON.stringify({ name, email, phone, address }));
+    document.getElementById("saveMsg").textContent = "Profile updated successfully!";
+    document.getElementById("sidebarName").textContent = name;
+  }
 
-      const data = await res.json();
-      document.getElementById("msg").textContent = data.message || "Update failed";
+  function changeProfilePic(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById("profilePic").src = e.target.result;
+        localStorage.setItem("profileImage", e.target.result);
+      };
+      reader.readAsDataURL(file);
     }
-  </script>
+  }
+
+  window.onload = () => {
+    const data = JSON.parse(localStorage.getItem("userProfile"));
+    if (data) {
+      document.getElementById("name").value = data.name;
+      document.getElementById("email").value = data.email;
+      document.getElementById("phone").value = data.phone;
+      document.getElementById("address").value = data.address;
+      document.getElementById("sidebarName").textContent = data.name;
+    }
+
+    const savedImg = localStorage.getItem("profileImage");
+    if (savedImg) {
+      document.getElementById("profilePic").src = savedImg;
+    }
+  };
+</script>
+
 </body>
 </html>

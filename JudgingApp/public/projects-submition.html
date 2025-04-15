@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Project</title>
+  <link rel="stylesheet" href="../Styles/styles.css" />
+  <style>
+    body {
+      background: linear-gradient(to right, #43cea2, #185a9d);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      padding: 0 20px;
+    }
+
+    .form-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .btn {
+      margin-top: 20px;
+      background-color: #43cea2;
+      color: white;
+      padding: 12px;
+      border: none;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #2f987c;
+    }
+  </style>
+</head>
+<body>
+  <a href="student-dashboard.html" style="
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background-color: white;
+    color: #185a9d;
+    padding: 8px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  ">
+    ← Home
+  </a>
+
+  <div class="form-container">
+    <h2>Submit Your Project</h2>
+    <form id="projectForm" enctype="multipart/form-data">
+      <label for="title">Project Title</label>
+      <input type="text" id="title" name="title" required>
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="5" required></textarea>
+
+      <label for="eventId">Choose Event</label>
+      <select id="eventId" name="eventId" required>
+        <option value="">-- Select an Event --</option>
+      </select>
+
+      <label for="file">Upload File</label>
+      <input type="file" id="file" name="file" required />
+
+      <button type="submit" class="btn">Submit Project</button>
+    </form>
+  </div>
+
+  <script>
+    async function loadEvents() {
+      try {
+        const res = await fetch("http://localhost:3000/api/events");
+        const events = await res.json();
+        const dropdown = document.getElementById("eventId");
+
+        events.forEach(event => {
+          const option = document.createElement("option");
+          option.value = event.id;
+          option.textContent = `${event.name} (${event.date})`;
+          dropdown.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Failed to load events:", err);
+        alert("Could not load event options.");
+      }
+    }
+
+    document.getElementById("projectForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = document.getElementById("projectForm");
+      const formData = new FormData(form);
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user || !user.id) {
+        alert("Please log in first.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      formData.append("userId", user.id); // If needed by backend
+
+      try {
+        const res = await fetch("http://localhost:3000/api/projects/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "Project submission failed.");
+        } else {
+          alert("Project submitted successfully!");
+          form.reset();
+          window.location.href = "student-dashboard.html";
+        }
+      } catch (err) {
+        console.error("Upload failed:", err);
+        alert("Upload failed. Please try again.");
+      }
+    });
+
+    loadEvents();
+  </script>
+</body>
+</html>

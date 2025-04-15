@@ -4,72 +4,128 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Leaderboard</title>
-  <link rel="stylesheet" href="styles.css"/>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #4facfe, #00f2fe);
+      background: linear-gradient(to right, #667eea, #764ba2);
+      font-family: Arial, sans-serif;
       color: #fff;
-      padding: 50px;
-      text-align: center;
+      padding: 60px 20px 20px;
     }
-    h1 {
-      margin-bottom: 30px;
-    }
-    table {
-      width: 80%;
-      margin: 0 auto;
-      border-collapse: collapse;
-      background: white;
-      color: #333;
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
       border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
-    th, td {
+
+    h2, h3, h4 {
+      text-align: center;
+      color: #fff;
+    }
+
+    .event-section {
+      margin-bottom: 40px;
+    }
+
+    .project-item {
+      background: rgba(255, 255, 255, 0.15);
       padding: 15px;
-      border-bottom: 1px solid #eee;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border-left: 5px solid transparent;
     }
-    th {
-      background-color: #0099cc;
-      color: white;
+
+    .project-item.highlight {
+      border-left-color: gold;
+      background-color: rgba(255, 255, 255, 0.25);
     }
-    tr:hover {
-      background-color: #f1f1f1;
+
+    .home-btn {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      background-color: #ffffff;
+      color: #764ba2;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .home-btn:hover {
+      background-color: #f4f4f4;
+    }
+
+    a.view-link {
+      color: #ffd700;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a.view-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h1>🏆 Project Leaderboard</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Project Title</th>
-        <th>Average Score</th>
-        <th>Event</th>
-      </tr>
-    </thead>
-    <tbody id="leaderboardBody">
-      <!-- JavaScript will inject rows here -->
-    </tbody>
-  </table>
+  <div class="container">
+    <a href="student-dashboard.html" class="home-btn">← Home</a>
+    <h2>🏆 Project Leaderboard</h2>
+
+    <div id="leaderboardContent"></div>
+  </div>
 
   <script>
     async function loadLeaderboard() {
-      const res = await fetch("http://localhost:3000/api/leaderboard");
-      const data = await res.json();
-      const tbody = document.getElementById("leaderboardBody");
-      data.forEach((project, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${project.title}</td>
-          <td>${project.avg_score.toFixed(2)}</td>
-          <td>${project.event_name}</td>
-        `;
-        tbody.appendChild(row);
-      });
+      try {
+        const res = await fetch("http://localhost:3000/api/leaderboard/recent");
+        const data = await res.json();
+        const container = document.getElementById("leaderboardContent");
+
+        const renderEvents = (events, title) => {
+          if (!events.length) return;
+          const titleEl = document.createElement("h3");
+          titleEl.textContent = title;
+          container.appendChild(titleEl);
+
+          events.forEach(event => {
+            const section = document.createElement("div");
+            section.className = "event-section";
+
+            const header = document.createElement("h4");
+            header.textContent = `${event.event_name} (${event.date})`;
+            section.appendChild(header);
+
+            if (!event.projects.length) {
+              section.innerHTML += "<p>No projects reviewed yet.</p>";
+            } else {
+              event.projects.forEach((project, index) => {
+                const div = document.createElement("div");
+                div.className = "project-item";
+                if (index === 0) div.classList.add("highlight");
+
+                div.innerHTML = `
+                  <strong>${project.rank ? project.rank + ' ' : ''}${project.title}</strong><br>
+                  Final Score: <strong>${project.final_score}</strong><br>
+                  <a href="http://localhost:3000/uploads/${project.file_path}" target="_blank" class="view-link">📄 View File</a>
+                `;
+                section.appendChild(div);
+              });
+            }
+
+            container.appendChild(section);
+          });
+        };
+
+        renderEvents(data.topThree, "🔥 Most Recent Events");
+        renderEvents(data.others, "📚 Past Events");
+
+      } catch (err) {
+        console.error("Failed to load leaderboard:", err);
+        document.getElementById("leaderboardContent").innerHTML = "<p>Error loading leaderboard.</p>";
+      }
     }
 
     loadLeaderboard();

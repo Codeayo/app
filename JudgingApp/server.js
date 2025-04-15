@@ -1,382 +1,251 @@
-require("dotenv").config();
-
 const express = require("express");
-const path = require("path");
 const cors = require("cors");
-const mysql = require("mysql2");
 const bcrypt = require("bcryptjs");
+const mysql = require("mysql2/promise");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const db = require("./db");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Database connection
-const db = mysql.createConnection(process.env.DATABASE_URL);
-db.connect(err => {
-  if (err) {
-    console.error("❌ Database connection failed:", err.stack);
-    return;
-  }
-  console.log("✅ Connected to MySQL database");
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  },
 });
+const upload = multer({ storage });
 
-const dbPromise = db.promise();
-
-// Serve frontend
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// ===== STUDENT AUTH =====
-app.post("/api/student/login", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const [rows] = await dbPromise.query("SELECT * FROM students WHERE email = ?", [email]);
-    if (rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
-
-    const student = rows[0];
-    const match = await bcrypt.compare(password, student.password);
-    if (!match) return res.status(401).json({ error: "Invalid credentials" });
-
-    res.json({ user: { id: student.id, email: student.email, name: student.name || "Student" } });
-  } catch (err) {
-    console.error("Student login error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
+/* STUDENT REGISTER */
 app.post("/api/student/register", async (req, res) => {
   const { name, email, password } = req.body;
-  try {
-    const [existing] = await dbPromise.query("SELECT * FROM students WHERE email = ?", [email]);
-    if (existing.length > 0) return res.status(400).json({ error: "Email already registered" });
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
 
-    const hash = await bcrypt.hash(password, 10);
-    await dbPromise.query("INSERT INTO students (name, email, password) VALUES (?, ?, ?)", [name, email, hash]);
-    res.status(201).json({ message: "Student registered" });
+  try {
+    const hashed = await bcrypt.hash(password, 10);
+    await db.query("INSERT INTO students (name, email, password) VALUES (?, ?, ?)", [
+      name,
+      email,
+      hashed,
+    ]);
+    res.status(201).json({ message: "Student registered successfully" });
   } catch (err) {
-    console.error("Student registration error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Student register error:", err);
+    res.status(500).json({ error: "Server error during student registration" });
   }
 });
 
-app.put("/api/student/update", async (req, res) => {
-  const { id, name, password } = req.body;
-  const hash = password ? await bcrypt.hash(password, 10) : null;
-
-  const query = hash
-    ? "UPDATE students SET name = ?, password = ? WHERE id = ?"
-    : "UPDATE students SET name = ? WHERE id = ?";
-  const params = hash ? [name, hash, id] : [name, id];
+/* STUDENT LOGIN */
+app.post("/api/student/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password required" });
+  }
 
   try {
-    await dbPromise.query(query, params);
-    res.json({ message: "Profile updated" });
+    const [rows] = await db.query("SELECT * FROM students WHERE email = ?", [email]);
+    const student = rows[0];
+    if (!student) return res.status(404).json({ error: "User not found" });
+
+    const match = await bcrypt.compare(password, student.password);
+    if (!match) return res.status(401).json({ error: "Incorrect password" });
+
+    res.json({ id: student.id, name: student.name, email: student.email });
   } catch (err) {
-    console.error("Student update error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Student login error:", err);
+    res.status(500).json({ error: "Server error during login" });
   }
 });
 
-// ===== JUDGE AUTH =====
-app.post("/api/judge/login", async (req, res) => {
-  const { id, password } = req.body;
+/* JUDGE REGISTER */
+app.post("/api/judges/register", async (req, res) => {
+  const { judgeId, password } = req.body;
+  if (!judgeId || !password) {
+    return res.status(400).json({ error: "Judge ID and password are required." });
+  }
+
   try {
-    const [rows] = await dbPromise.query("SELECT * FROM judges WHERE id = ?", [id]);
-    if (rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
+    const hashed = await bcrypt.hash(password, 10);
+    await db.query("INSERT INTO judges (judgeId, password) VALUES (?, ?)", [
+      judgeId,
+      hashed,
+    ]);
+    res.status(201).json({ message: "Judge registered successfully" });
+  } catch (err) {
+    console.error("Judge register error:", err);
+    res.status(500).json({ error: "Server error during judge registration" });
+  }
+});
 
-    const match = await bcrypt.compare(password, rows[0].password);
-    if (!match) return res.status(401).json({ error: "Invalid credentials" });
+/* JUDGE LOGIN */
+app.post("/api/judges/login", async (req, res) => {
+  const { judgeId, password } = req.body;
+  if (!judgeId || !password) {
+    return res.status(400).json({ error: "Judge ID and password required" });
+  }
 
-    res.json({ user: { id: rows[0].id, role: "judge" } });
+  try {
+    const [rows] = await db.query("SELECT * FROM judges WHERE judgeId = ?", [judgeId]);
+    const judge = rows[0];
+    if (!judge) return res.status(404).json({ error: "Judge not found" });
+
+    const match = await bcrypt.compare(password, judge.password);
+    if (!match) return res.status(401).json({ error: "Incorrect password" });
+
+    res.json({ id: judge.id, judgeId: judge.judgeId });
   } catch (err) {
     console.error("Judge login error:", err);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: "Server error during login" });
   }
 });
 
-app.post("/api/judges", async (req, res) => {
-  const { id, password } = req.body;
+/* STUDENT PROFILE SUMMARY */
+app.get("/api/student/profile/:id", async (req, res) => {
+  const studentId = req.params.id;
   try {
-    const [exists] = await dbPromise.query("SELECT * FROM judges WHERE id = ?", [id]);
-    if (exists.length > 0) return res.status(400).json({ error: "Judge already exists" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    await dbPromise.query("INSERT INTO judges (id, password) VALUES (?, ?)", [id, hashed]);
-    res.json({ message: "Judge created" });
+    const [[student]] = await db.query("SELECT name, email FROM students WHERE id = ?", [studentId]);
+    const [[{ projectCount }]] = await db.query(
+      "SELECT COUNT(*) AS projectCount FROM projects WHERE user_id = ?", [studentId]
+    );
+    const [[{ eventCount }]] = await db.query(
+      "SELECT COUNT(DISTINCT event_id) AS eventCount FROM projects WHERE user_id = ?", [studentId]
+    );
+    res.json({ name: student.name, email: student.email, projectCount, eventCount });
   } catch (err) {
-    console.error("Judge creation error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Profile summary error:", err);
+    res.status(500).json({ error: "Failed to load student profile summary." });
   }
 });
 
-app.put("/api/judge/update", async (req, res) => {
-  const { id, password } = req.body;
-  try {
-    const hash = await bcrypt.hash(password, 10);
-    await dbPromise.query("UPDATE judges SET password = ? WHERE id = ?", [hash, id]);
-    res.json({ message: "Password updated" });
-  } catch (err) {
-    console.error("Judge update error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.get("/api/judges", async (req, res) => {
-  try {
-    const [rows] = await dbPromise.query("SELECT id FROM judges");
-    res.json(rows);
-  } catch (err) {
-    console.error("Judge fetch error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/judges/:id", async (req, res) => {
-  try {
-    await dbPromise.query("DELETE FROM judges WHERE id = ?", [req.params.id]);
-    res.json({ message: "Judge deleted" });
-  } catch (err) {
-    console.error("Judge delete error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ===== EVENTS =====
-app.get("/api/events", async (req, res) => {
-  try {
-    const [rows] = await dbPromise.query("SELECT * FROM events ORDER BY date DESC");
-    res.json(rows);
-  } catch (err) {
-    console.error("Events fetch error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
+/* ADD EVENT */
 app.post("/api/events", async (req, res) => {
   const { name, date } = req.body;
+  if (!name || !date) {
+    return res.status(400).json({ error: "Name and date are required." });
+  }
+
   try {
-    await dbPromise.query("INSERT INTO events (name, date) VALUES (?, ?)", [name, date]);
-    res.json({ message: "Event created" });
+    await db.query("INSERT INTO events (name, date) VALUES (?, ?)", [name, date]);
+    res.status(201).json({ message: "Event added successfully" });
   } catch (err) {
-    console.error("Event create error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Event creation error:", err);
+    res.status(500).json({ error: "Server error while adding event" });
   }
 });
 
-app.put("/api/events/:id", async (req, res) => {
-  const { name, date } = req.body;
+/* GET UPCOMING EVENTS */
+app.get("/api/events", async (req, res) => {
   try {
-    await dbPromise.query("UPDATE events SET name = ?, date = ? WHERE id = ?", [name, date, req.params.id]);
-    res.json({ message: "Event updated" });
-  } catch (err) {
-    console.error("Event update error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/events/:id", async (req, res) => {
-  try {
-    await dbPromise.query("DELETE FROM events WHERE id = ?", [req.params.id]);
-    res.json({ message: "Event deleted" });
-  } catch (err) {
-    console.error("Event delete error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.get("/api/events/judge/:judgeId", async (req, res) => {
-  const { judgeId } = req.params;
-  try {
-    const [rows] = await dbPromise.query(`
-      SELECT e.id, e.name, e.date
-      FROM events e
-      JOIN judge_event je ON e.id = je.event_id
-      WHERE je.judge_id = ?
-    `, [judgeId]);
+    const [rows] = await db.query(
+      "SELECT * FROM events WHERE date >= CURDATE() ORDER BY date ASC"
+    );
     res.json(rows);
   } catch (err) {
-    console.error("Judge events fetch error:", err);
-    res.status(500).json({ error: "Could not fetch events" });
+    console.error("Fetch events error:", err);
+    res.status(500).json({ error: "Server error while fetching events" });
   }
 });
 
-// ===== JUDGE EVENT ASSIGNMENTS =====
-app.post("/api/judge_event", async (req, res) => {
-  const { judgeId, eventId } = req.body;
+/* UPLOAD PROJECT */
+app.post("/api/projects/upload", upload.single("file"), async (req, res) => {
+  const { title, description, eventId, userId } = req.body;
+  const file = req.file;
+  if (!title || !description || !eventId || !file || !userId) {
+    return res.status(400).json({ error: "All fields and file are required." });
+  }
+
   try {
-    await dbPromise.query("INSERT IGNORE INTO judge_event (judge_id, event_id) VALUES (?, ?)", [judgeId, eventId]);
-    res.json({ message: "Judge assigned" });
+    await db.query(
+      "INSERT INTO projects (title, description, file_path, event_id, user_id) VALUES (?, ?, ?, ?, ?)",
+      [title, description, file.filename, eventId, userId]
+    );
+    res.status(201).json({ message: "Project uploaded successfully!" });
   } catch (err) {
-    console.error("Judge assign error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Server error while uploading project" });
   }
 });
 
-// ===== PROJECTS =====
-app.get("/api/projects", async (req, res) => {
-  const [rows] = await dbPromise.query("SELECT * FROM projects");
-  res.json(rows);
-});
-
-app.post("/api/projects", async (req, res) => {
-  const { title, description, event_id, user_id } = req.body;
-  try {
-    await dbPromise.query("INSERT INTO projects (title, description, event_id, user_id) VALUES (?, ?, ?, ?)", [
-      title,
-      description,
-      event_id,
-      user_id
-    ]);
-    res.json({ message: "Project added" });
-  } catch (err) {
-    console.error("Project add error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.delete("/api/projects/:id", async (req, res) => {
-  try {
-    await dbPromise.query("DELETE FROM projects WHERE id = ?", [req.params.id]);
-    res.json({ message: "Project deleted" });
-  } catch (err) {
-    console.error("Project delete error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.get("/api/projects/event/:eventId", async (req, res) => {
-  try {
-    const [rows] = await dbPromise.query("SELECT * FROM projects WHERE event_id = ?", [req.params.eventId]);
-    res.json(rows);
-  } catch (err) {
-    console.error("Projects by event error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.get("/api/projects/student/:studentId", async (req, res) => {
-  try {
-    const [projects] = await dbPromise.query("SELECT * FROM projects WHERE user_id = ?", [req.params.studentId]);
-    const ids = projects.map(p => p.id);
-    if (ids.length === 0) return res.json([]);
-
-    const [reviews] = await dbPromise.query("SELECT * FROM reviews WHERE project_id IN (?)", [ids]);
-
-    const combined = projects.map(project => ({
-      ...project,
-      reviews: reviews.filter(r => r.project_id === project.id)
-    }));
-
-    res.json(combined);
-  } catch (err) {
-    console.error("Student projects fetch error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.get("/api/project/:id", async (req, res) => {
-  try {
-    const [projectRows] = await dbPromise.query(`
-      SELECT p.*, e.name AS event_name
-      FROM projects p
-      JOIN events e ON p.event_id = e.id
-      WHERE p.id = ?
-    `, [req.params.id]);
-
-    if (projectRows.length === 0) return res.status(404).json({ error: "Project not found" });
-
-    const [reviews] = await dbPromise.query("SELECT * FROM reviews WHERE project_id = ?", [req.params.id]);
-
-    res.json({
-      project: projectRows[0],
-      reviews
-    });
-  } catch (err) {
-    console.error("Project detail fetch error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
+/* REVIEW PROJECT */
 app.post("/api/projects/review", async (req, res) => {
-  const { judgeId, projectId, score, feedback } = req.body;
+  const { judgeId, projectId, creativity, impact, execution, feasibility, design, feedback } = req.body;
+  if (!judgeId || !projectId || creativity == null || impact == null || execution == null || feasibility == null || design == null) {
+    return res.status(400).json({ error: "All scoring fields are required." });
+  }
+
+  const finalScore = (
+    creativity * 0.2 +
+    impact * 0.25 +
+    execution * 0.2 +
+    feasibility * 0.15 +
+    design * 0.2
+  ).toFixed(2);
+
   try {
-    await dbPromise.query(`
-      INSERT INTO reviews (judge_id, project_id, score, feedback)
-      VALUES (?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE score = ?, feedback = ?
-    `, [judgeId, projectId, score, feedback, score, feedback]);
-    res.json({ message: "Review saved" });
+    await db.query(
+      "INSERT INTO reviews (judge_id, project_id, creativity, impact, execution, feasibility, design, final_score, feedback) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [judgeId, projectId, creativity, impact, execution, feasibility, design, finalScore, feedback]
+    );
+    res.status(201).json({ message: "Review submitted successfully!" });
   } catch (err) {
-    console.error("Review save error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Review error:", err);
+    res.status(500).json({ error: "Server error while submitting review" });
   }
 });
 
-// ===== ANALYTICS =====
-app.get("/api/leaderboard", async (req, res) => {
+/* LEADERBOARD */
+app.get("/api/leaderboard/recent", async (req, res) => {
   try {
-    const [rows] = await dbPromise.query(`
-      SELECT 
-        p.title, 
-        e.name AS event_name,
-        AVG(r.score) AS avg_score
-      FROM projects p
-      JOIN events e ON p.event_id = e.id
-      JOIN reviews r ON r.project_id = p.id
-      GROUP BY p.id
-      ORDER BY avg_score DESC
-      LIMIT 10
-    `);
-    res.json(rows);
+    const [allEvents] = await db.query("SELECT * FROM events ORDER BY date DESC");
+    const topThree = allEvents.slice(0, 3);
+    const rest = allEvents.slice(3);
+
+    const formatEventProjects = async (eventList) => {
+      const result = [];
+      for (let event of eventList) {
+        const [projects] = await db.query(`
+          SELECT p.title, p.file_path, AVG(r.final_score) AS final_score
+          FROM projects p
+          JOIN reviews r ON p.id = r.project_id
+          WHERE p.event_id = ?
+          GROUP BY p.id
+          ORDER BY final_score DESC
+        `, [event.id]);
+
+        result.push({
+          event_id: event.id,
+          event_name: event.name,
+          date: event.date,
+          projects: projects.map((p, index) => ({
+            ...p,
+            rank: index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : null
+          }))
+        });
+      }
+      return result;
+    };
+
+    const topThreeData = await formatEventProjects(topThree);
+    const remainingData = await formatEventProjects(rest);
+
+    res.json({ topThree: topThreeData, others: remainingData });
   } catch (err) {
-    console.error("Leaderboard error:", err);
-    res.status(500).json({ error: "Could not load leaderboard" });
+    console.error("Leaderboard recent events error:", err);
+    res.status(500).json({ error: "Failed to fetch leaderboard by event." });
   }
 });
 
-app.get("/api/admin/analytics", async (req, res) => {
-  try {
-    const [[{ totalStudents }]] = await dbPromise.query("SELECT COUNT(*) AS totalStudents FROM students");
-    const [[{ totalJudges }]] = await dbPromise.query("SELECT COUNT(*) AS totalJudges FROM judges");
-    const [[{ totalEvents }]] = await dbPromise.query("SELECT COUNT(*) AS totalEvents FROM events");
-    const [[{ totalProjects }]] = await dbPromise.query("SELECT COUNT(*) AS totalProjects FROM projects");
-
-    const [[topEvent]] = await dbPromise.query(`
-      SELECT e.name, COUNT(p.id) AS count
-      FROM events e
-      JOIN projects p ON e.id = p.event_id
-      GROUP BY e.id
-      ORDER BY count DESC
-      LIMIT 1
-    `);
-
-    const [[topProject]] = await dbPromise.query(`
-      SELECT p.title, AVG(r.score) AS avg_score
-      FROM projects p
-      JOIN reviews r ON r.project_id = p.id
-      GROUP BY p.id
-      ORDER BY avg_score DESC
-      LIMIT 1
-    `);
-
-    res.json({
-      totalStudents,
-      totalJudges,
-      totalEvents,
-      totalProjects,
-      topEvent: topEvent?.name || null,
-      topProject: topProject?.title || null
-    });
-  } catch (err) {
-    console.error("Analytics error:", err);
-    res.status(500).json({ error: "Analytics failed" });
-  }
-});
-
-// Start server
-const PORT = process.env.PORT || 3000;
+/* START SERVER */
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });

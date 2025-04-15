@@ -2,62 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Judge Login</title>
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: linear-gradient(to right, #667eea, #764ba2);
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      font-family: 'Inter', sans-serif;
     }
 
     .form-container {
-      background: #fff;
+      background: #ffffff;
       padding: 2.5rem;
       border-radius: 1rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 400px;
       text-align: center;
     }
 
     h2 {
-      margin-bottom: 1.5rem;
+      font-size: 1.75rem;
       color: #1e293b;
+      margin-bottom: 1.5rem;
     }
 
     label {
       display: block;
-      margin-top: 1rem;
-      text-align: left;
+      margin-top: 1.25rem;
+      margin-bottom: 0.25rem;
       font-weight: 500;
-      color: #1e293b;
+      text-align: left;
+      color: #334155;
     }
 
     input {
       width: 100%;
       padding: 0.75rem;
-      margin-top: 0.5rem;
       border-radius: 0.5rem;
-      border: 1px solid #ccc;
+      border: 1px solid #d1d5db;
       font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: #2563eb;
+      outline: none;
     }
 
     .btn {
-      margin-top: 1.5rem;
+      margin-top: 2rem;
       background-color: #2563eb;
       color: white;
       border: none;
       padding: 0.75rem;
       width: 100%;
-      font-weight: bold;
+      font-weight: 600;
       border-radius: 0.5rem;
       cursor: pointer;
+      transition: background-color 0.2s;
     }
 
     .btn:hover {
@@ -65,19 +78,55 @@
     }
 
     .form-note {
-      margin-top: 1rem;
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      color: #475569;
     }
 
     .form-note a {
       color: #2563eb;
       text-decoration: none;
+      font-weight: 500;
     }
+
+    .form-note a:hover {
+      text-decoration: underline;
+    }
+
+    #loginError {
+      color: #dc2626;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+    .home-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.85rem;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  font-weight: 500;
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+
+.home-button:hover {
+  background: #ffffff;
+  color: #2563eb;
+}
+
+
   </style>
 </head>
 <body>
+  <a href="index.html" class="home-button">Home</a>
+
   <div class="form-container">
     <h2>Judge Login</h2>
-    <form id="loginForm" class="form-card">
+    <form id="loginForm">
       <label for="userId">Judge ID</label>
       <input type="text" id="userId" name="userId" required />
 
@@ -85,13 +134,43 @@
       <input type="password" id="password" name="password" required />
 
       <button type="submit" class="btn">Login</button>
-      <p id="loginError" style="color:red;margin-top:10px;"></p>
+      <p id="loginError"></p>
     </form>
+
     <p class="form-note">
-      Not registered? <a href="register.html">Create an account</a><br>
-      <a href="login.html" style="color:#2563eb;">← Back to Home</a>
+      Not registered? <a href="register.html">Create an account</a><br />
+      <a href="login.html">← Back </a>
     </p>
   </div>
-  <script src="auth.js"></script>
+
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const userId = document.getElementById("userId").value;
+      const password = document.getElementById("password").value;
+      const loginError = document.getElementById("loginError");
+
+      try {
+        const res = await fetch("http://localhost:3000/api/judge/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          loginError.textContent = data.error || "Login failed.";
+        } else {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          window.location.href = "judge-dashboard.html";
+        }
+      } catch (err) {
+        loginError.textContent = "Server error.";
+      }
+    });
+  </script>
 </body>
 </html>

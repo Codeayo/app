@@ -1,6 +1,5 @@
 const API_URL = 'http://localhost:3000/api';
 
-// Optional: Require login for admin dashboard
 function checkAuth() {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -10,12 +9,12 @@ function checkAuth() {
 checkAuth();
 
 function getAuthHeaders() {
+  const token = localStorage.getItem('token');
   return {
-    'Content-Type': 'application/json'
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
   };
 }
-
-// ================== EVENTS ==================
 
 const addEventBtn = document.getElementById("addEventBtn");
 const eventForm = document.getElementById("eventForm");
@@ -32,27 +31,27 @@ if (saveEventBtn) {
   saveEventBtn.addEventListener("click", async () => {
     const name = document.getElementById("eventName").value;
     const date = document.getElementById("eventDate").value;
+    const location = document.getElementById("eventLocation").value;
+    const level = document.getElementById("eventLevel").value;
+    const status = document.getElementById("eventStatus").value;
 
     try {
       const res = await fetch(`${API_URL}/events`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ name, date })
+        body: JSON.stringify({ name, date, location, level, status })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create event');
 
       alert(`✅ ${data.message}`);
-      eventForm.reset();
       eventForm.style.display = "none";
     } catch (err) {
       alert(err.message);
     }
   });
 }
-
-// ================== JUDGES ==================
 
 const addJudgeBtn = document.getElementById("addJudgeBtn");
 const judgeForm = document.getElementById("judgeForm");
@@ -67,21 +66,21 @@ if (cancelJudgeBtn) {
 }
 if (saveJudgeBtn) {
   saveJudgeBtn.addEventListener("click", async () => {
-    const id = document.getElementById("judgeId").value;
+    const fullName = document.getElementById("judgeName").value;
+    const email = document.getElementById("judgeEmail").value;
     const password = document.getElementById("judgePassword").value;
 
     try {
-      const res = await fetch(`${API_URL}/judges`, {
+      const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ id, password })
+        headers: { 'Content-Type': 'application/json' }, // no token needed
+        body: JSON.stringify({ fullName, email, password, role: 'judge' })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create judge');
 
       alert("✅ Judge created successfully!");
-      judgeForm.reset();
       judgeForm.style.display = "none";
     } catch (err) {
       alert(err.message);
@@ -89,7 +88,6 @@ if (saveJudgeBtn) {
   });
 }
 
-// ================== PROJECTS ==================
 
 const addProjectBtn = document.getElementById("addProjectBtn");
 const projectForm = document.getElementById("projectForm");
@@ -106,21 +104,21 @@ if (saveProjectBtn) {
   saveProjectBtn.addEventListener("click", async () => {
     const title = document.getElementById("projectName").value;
     const description = document.getElementById("projectDesc").value;
-    const event_id = document.getElementById("eventId").value;
-    const user_id = document.getElementById("projectUserId").value; // admin can assign student manually
+    const eventId = document.getElementById("eventId").value;
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user?.UserID;
 
     try {
       const res = await fetch(`${API_URL}/projects`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ title, description, event_id, user_id })
+        body: JSON.stringify({ title, description, eventId, userId })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create project');
 
       alert("✅ Project created successfully!");
-      projectForm.reset();
       projectForm.style.display = "none";
     } catch (err) {
       alert(err.message);

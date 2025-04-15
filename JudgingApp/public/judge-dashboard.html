@@ -44,9 +44,31 @@
       width: 90%;
       max-width: 800px;
       background: rgba(255, 255, 255, 0.15);
-      padding: 20px;
+      padding: 30px;
       border-radius: 10px;
       color: #fff;
+      margin-bottom: 40px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      background: #ffd700;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn:hover {
+      background: #f4c400;
     }
 
     .event-card {
@@ -58,42 +80,6 @@
 
     .event-card h3 {
       margin-bottom: 10px;
-    }
-
-    .btn {
-      padding: 10px 15px;
-      background: #ffd700;
-      color: #333;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background: #f4c400;
-    }
-
-    .project-list {
-      margin-top: 20px;
-    }
-
-    .project-item {
-      background: rgba(255, 255, 255, 0.15);
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-
-    input, textarea {
-      width: 100%;
-      margin-top: 5px;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-
-    textarea {
-      resize: vertical;
     }
   </style>
 </head>
@@ -108,78 +94,43 @@
 
   <div class="dashboard">
     <h2>Welcome, Judge</h2>
-    <div id="eventsContainer"></div>
+    
+    <div class="button-row">
+      <button class="btn" onclick="location.href='judge-scoring.html'">Go to Scoring</button>
+      <button class="btn" onclick="document.getElementById('eventsSection').scrollIntoView({ behavior: 'smooth' })">View Events</button>
+    </div>
+
+    <div id="eventsSection">
+      <h3>Your Assigned Events</h3>
+      <div id="eventsContainer"></div>
+    </div>
   </div>
 
   <script>
-    const judge = JSON.parse(localStorage.getItem("user"));
-    if (!judge || !judge.id) {
-      alert("You must be logged in to access this page.");
-      window.location.href = "judge-login.html";
-    }
+    const judge = JSON.parse(localStorage.getItem("user")) || { id: "guest" };
 
     async function fetchEvents() {
-      const res = await fetch(`http://localhost:3000/api/events/judge/${judge.id}`);
-      const events = await res.json();
-      const container = document.getElementById("eventsContainer");
+      try {
+        const res = await fetch(`http://localhost:3000/api/events/judge/${judge.id}`);
+        const events = await res.json();
+        const container = document.getElementById("eventsContainer");
 
-      if (events.length === 0) {
-        container.innerHTML = "<p>No events assigned to you yet.</p>";
-        return;
-      }
+        if (!Array.isArray(events) || events.length === 0) {
+          container.innerHTML = "<p>No events assigned to you yet.</p>";
+          return;
+        }
 
-      events.forEach(event => {
-        const card = document.createElement("div");
-        card.className = "event-card";
-        card.innerHTML = `<h3>${event.name}</h3>
-          <p><strong>Date:</strong> ${event.date || "TBA"}</p>
-          <button class="btn" onclick="loadProjects(${event.id})">View Projects</button>
-          <div id="project-list-${event.id}" class="project-list"></div>`;
-        container.appendChild(card);
-      });
-    }
-
-    async function loadProjects(eventId) {
-      const list = document.getElementById(`project-list-${eventId}`);
-      const res = await fetch(`http://localhost:3000/api/projects/event/${eventId}`);
-      const projects = await res.json();
-
-      list.innerHTML = "";
-      projects.forEach(project => {
-        const div = document.createElement("div");
-        div.className = "project-item";
-        div.innerHTML = `
-          <h4>${project.title}</h4>
-          <p><strong>Description:</strong> ${project.description}</p>
-          <label>Score (0–100): <input type="number" min="0" max="100" id="score-${project.id}"></label>
-          <label>Feedback:</label>
-          <textarea id="feedback-${project.id}" rows="3"></textarea>
-          <button class="btn" onclick="submitReview(${project.id})">Submit</button>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    async function submitReview(projectId) {
-      const score = document.getElementById(`score-${projectId}`).value;
-      const feedback = document.getElementById(`feedback-${projectId}`).value;
-
-      const res = await fetch("http://localhost:3000/api/projects/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          judgeId: judge.id,
-          projectId,
-          score,
-          feedback
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Error submitting review.");
-      } else {
-        alert("Review submitted.");
+        events.forEach(event => {
+          const card = document.createElement("div");
+          card.className = "event-card";
+          card.innerHTML = `
+            <h3>${event.name}</h3>
+            <p><strong>Date:</strong> ${event.date || "TBA"}</p>
+          `;
+          container.appendChild(card);
+        });
+      } catch (err) {
+        document.getElementById("eventsContainer").innerHTML = "<p style='color: red;'>Failed to load events.</p>";
       }
     }
 

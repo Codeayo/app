@@ -3,186 +3,179 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Events</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Submit Event</title>
+  <link rel="stylesheet" href="styles.css" />
   <style>
     body {
-      background: linear-gradient(to right, #1e3c72, #2a5298);
-      font-family: 'Segoe UI', sans-serif;
-      padding-top: 100px;
-      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #4a00e0, #8e2de2);
       color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
-    header {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 15px 30px;
+    nav {
+      background: linear-gradient(to right, #000000, #232526);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 1000;
+      padding: 15px 40px;
     }
 
-    .logo {
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    .nav a {
+    nav a {
       color: white;
-      margin-left: 20px;
       text-decoration: none;
+      font-weight: bold;
+      margin-left: 20px;
     }
 
     .container {
-      width: 90%;
-      max-width: 800px;
+      max-width: 600px;
+      margin: 100px auto 60px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 30px;
+      border-radius: 10px;
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 30px;
     }
 
-    form {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 10px;
-      margin-bottom: 30px;
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
     }
 
     input {
       width: 100%;
       padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
+      margin-top: 5px;
       border: none;
+      border-radius: 5px;
     }
 
-    .btn {
-      padding: 10px 20px;
-      background: #ffd700;
-      color: #000;
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
+      background-color: #ffd700;
+      color: black;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    .event-list {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px;
-      border-radius: 10px;
+    button:hover {
+      background-color: #f4c400;
     }
 
-    .event-item {
-      margin-bottom: 15px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      padding-bottom: 10px;
+    h3 {
+      margin-top: 40px;
+      text-align: center;
     }
 
-    .event-item input[type="text"], .event-item input[type="date"] {
-      width: auto;
-      display: inline-block;
-      margin-right: 10px;
+    ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 20px;
     }
 
-    .event-item .btn {
-      margin-left: 10px;
+    ul li {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo">The Adjudicators</div>
-    <div class="nav">
+
+  <!-- Navigation Bar -->
+  <nav>
+    <div style="font-weight: bold; font-size: 1.5rem;">The Adjudicators</div>
+    <div>
       <a href="admin-dashboard.html">Dashboard</a>
-      <a href="login.html" onclick="localStorage.clear()">Logout</a>
+      <a href="#" onclick="logout()">Logout</a>
     </div>
-  </header>
+  </nav>
 
   <div class="container">
-    <h2>Event Manager</h2>
+    <h2>Admin: Manage Events</h2>
 
     <form id="eventForm">
-      <input type="text" id="eventName" placeholder="Event Name" required>
-      <input type="date" id="eventDate" required>
-      <button type="submit" class="btn">Add Event</button>
+      <label for="eventName">Event Name</label>
+      <input type="text" id="eventName" name="eventName" required>
+
+      <label for="eventDate">Event Date</label>
+      <input type="date" id="eventDate" name="eventDate" required>
+
+      <button type="submit">Add Event</button>
     </form>
 
-    <div id="eventsContainer" class="event-list"></div>
+    <h3>Upcoming Events</h3>
+    <ul id="eventList"></ul>
   </div>
 
-  <script>
-    const eventForm = document.getElementById("eventForm");
-    const eventsContainer = document.getElementById("eventsContainer");
-
-    eventForm.addEventListener("submit", async (e) => {
+ <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("eventForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const name = document.getElementById("eventName").value;
       const date = document.getElementById("eventDate").value;
 
-      const res = await fetch("http://localhost:3000/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, date }),
-      });
+      try {
+        const res = await fetch("http://localhost:3000/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, date }),
+        });
 
-      if (res.ok) {
-        loadEvents();
-        eventForm.reset();
-      } else {
-        alert("Error adding event");
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to add event.");
+        }
+
+        alert(data.message || "Event added successfully!");
+        document.getElementById("eventForm").reset();
+        fetchEvents(); // Refresh event list
+      } catch (err) {
+        console.error("Event add error:", err);
+        alert("❌ " + err.message);
       }
     });
 
-    async function loadEvents() {
-      const res = await fetch("http://localhost:3000/api/events");
-      const events = await res.json();
-      eventsContainer.innerHTML = "";
+    fetchEvents();
 
-      events.forEach(event => {
-        const div = document.createElement("div");
-        div.className = "event-item";
-        div.innerHTML = `
-          <input type="text" value="${event.name}" id="name-${event.id}">
-          <input type="date" value="${event.date?.split('T')[0]}" id="date-${event.id}">
-          <button class="btn" onclick="updateEvent(${event.id})">Save</button>
-          <button class="btn" onclick="deleteEvent(${event.id})">Delete</button>
-        `;
-        eventsContainer.appendChild(div);
-      });
+    async function fetchEvents() {
+      try {
+        const res = await fetch("http://localhost:3000/api/events");
+        const events = await res.json();
+        const list = document.getElementById("eventList");
+        list.innerHTML = "";
+
+        events.forEach(event => {
+          const li = document.createElement("li");
+          li.textContent = `${event.name} — ${event.date}`;
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+        document.getElementById("eventList").innerHTML = "<li>Error loading events</li>";
+      }
     }
+  });
 
-    async function updateEvent(id) {
-      const name = document.getElementById(`name-${id}`).value;
-      const date = document.getElementById(`date-${id}`).value;
+  function logout() {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  }
+</script>
 
-      const res = await fetch(`http://localhost:3000/api/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, date }),
-      });
 
-      if (res.ok) loadEvents();
-      else alert("Error updating event");
-    }
-
-    async function deleteEvent(id) {
-      const res = await fetch(`http://localhost:3000/api/events/${id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) loadEvents();
-      else alert("Error deleting event");
-    }
-
-    loadEvents();
-  </script>
 </body>
 </html>

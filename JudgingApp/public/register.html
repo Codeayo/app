@@ -1,140 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Judging App - Register</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    body {
-      background: linear-gradient(to right, #667eea, #764ba2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: 'Segoe UI', sans-serif;
-    }
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>Judging App - Register</title>
+ <link rel="stylesheet" href="styles.css" />
+ <a href="index.html" class="home-button">Home</a>
+ <style>
+  body {
+   background: linear-gradient(to right, #667eea, #764ba2);
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   height: 100vh;
+  }
+  .form-container {
+   background: #fff;
+   padding: 30px;
+   border-radius: 10px;
+   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+   text-align: center;
+   width: 100%;
+   max-width: 400px;
+  }
+  h2 {
+   color: #333;
+   margin-bottom: 20px;
+  }
+  label {
+   text-align: left;
+   display: block;
+   margin-top: 10px;
+   font-weight: bold;
+  }
+  input {
+   width: 100%;
+   padding: 10px;
+   margin-top: 5px;
+   border: 1px solid #ccc;
+   border-radius: 5px;
+  }
+  .btn {
+   width: 100%;
+   margin-top: 20px;
+   padding: 12px;
+   background-color: #667eea;
+   color: white;
+   border: none;
+   font-size: 16px;
+   border-radius: 5px;
+   cursor: pointer;
+  }
+  .btn:hover {
+   background-color: #4a56a3;
+  }
+  .error-message {
+   color: red;
+   margin-top: 10px;
+  }
+  .form-note {
+   margin-top: 15px;
+  }
+  .form-note a {
+   color: #667eea;
+   text-decoration: none;
+  }
+  .home-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.85rem;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  padding: 0.3rem 0.75rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  font-weight: 500;
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
 
-    .form-container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      width: 100%;
-      max-width: 400px;
-    }
+.home-button:hover {
+  background: #ffffff;
+  color: #2563eb;
+}
 
-    h2 {
-      color: #333;
-      margin-bottom: 20px;
-    }
-
-    label {
-      text-align: left;
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    .btn {
-      width: 100%;
-      margin-top: 20px;
-      padding: 12px;
-      background-color: #667eea;
-      color: white;
-      border: none;
-      font-size: 16px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .btn:hover {
-      background-color: #4a56a3;
-    }
-
-    .error-message {
-      color: red;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    .form-note {
-      margin-top: 15px;
-    }
-
-    .form-note a {
-      color: #667eea;
-      text-decoration: none;
-    }
-  </style>
+ </style>
 </head>
 <body>
-  <div class="form-container">
-    <h2>Register as a Judge</h2>
-    <form id="registerForm">
-      <label for="judgeId">Judge ID</label>
-      <input type="text" id="judgeId" name="judgeId" required>
+ <div class="form-container">
+  <h2>Register as a Judge</h2>
+  <form id="registerForm">
+   <label for="judgeId">Judge ID</label>
+   <input type="text" id="judgeId" name="judgeId" required />
+   <label for="password">Password</label>
+   <input type="password" id="password" name="password" required />
+   <label for="confirmPassword">Confirm Password</label>
+   <input type="password" id="confirmPassword" name="confirmPassword" required />
+   <p id="passwordError" class="error-message"></p>
+   <button type="submit" class="btn">Register</button>
+  </form>
+  <p class="form-note">Already have an account? <a href="judge-login.html">Login</a></p>
+ </div>
+ <script>
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+   e.preventDefault();
+   const judgeId = document.getElementById("judgeId").value;
+   const password = document.getElementById("password").value;
+   const confirmPassword = document.getElementById("confirmPassword").value;
+   const passwordError = document.getElementById("passwordError");
 
-      <label for="password">Password</label>
-      <input type="password" id="password" name="password" required>
+   if (password !== confirmPassword) {
+    passwordError.textContent = "Passwords do not match.";
+    return;
+   }
 
-      <label for="confirmPassword">Confirm Password</label>
-      <input type="password" id="confirmPassword" name="confirmPassword" required>
-      <p id="passwordError" class="error-message"></p>
-
-      <button type="submit" class="btn">Register</button>
-    </form>
-    <p class="form-note">
-      Already have an account? <a href="judge-login.html">Login</a><br>
-      <a href="login.html">← Back to Home</a>
-    </p>
-  </div>
-
-  <script>
-    document.getElementById("registerForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
-      
-      const judgeId = document.getElementById("judgeId").value.trim();
-      const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
-      const errorDisplay = document.getElementById("passwordError");
-
-      if (password !== confirmPassword) {
-        errorDisplay.textContent = "Passwords do not match.";
-        return;
-      }
-
-      try {
-        const res = await fetch("http://localhost:3000/api/judges", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ id: judgeId, password })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          errorDisplay.textContent = data.error || "Registration failed.";
-        } else {
-          alert("Registration successful! You can now log in.");
-          window.location.href = "judge-login.html";
-        }
-      } catch (err) {
-        errorDisplay.textContent = "Server error. Please try again.";
-      }
+   try {
+    const res = await fetch("http://localhost:3000/api/judge/register", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ judgeId, password })
     });
-  </script>
+    const data = await res.json();
+    if (!res.ok) {
+     passwordError.textContent = data.error || "Registration failed.";
+    } else {
+     alert("Registration successful. You can now log in.");
+     window.location.href = "judge-login.html";
+    }
+   } catch (err) {
+    passwordError.textContent = "Server error. Try again.";
+   }
+  });
+ </script>
 </body>
 </html>
