@@ -249,3 +249,12 @@ app.get("/api/leaderboard/recent", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+const path = require("path");
+
+// Serve static files from "public"
+app.use(express.static(path.join(__dirname, "public")));
+
+// Fallback: serve index.html for unmatched routes (like SPA or home)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
